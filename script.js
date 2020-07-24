@@ -1,79 +1,100 @@
 let myLibrary = [];
 
-function Book(author, title, pages, read) {
+function Book(author, title, pages, readStatus) {
     this.author = author;
     this.title = title;
     this.pages = pages;
-    this.read = false;
-    this.id = 000000;
+    this.readStatus = readStatus;
+    this.id = author.split(' ').join('')+title.split(' ').join('');
+    
+    this.cardElement = document.createElement("div");
+    this.cont = document.createTextNode(`${title} by ${author}, ${pages} pgs. Status: `);
+
+    //deal with read button
+    this.readButton = document.createElement("input");
+    this.readButton.value = this.readStatus;
+    this.readButton.type = "button";
+
+    this.readButton.addEventListener("click", function(){
+        if (this.readStatus === "unread"){
+            this.readStatus = "reading"
+            this.readButton.style.color = "yellow"
+        }
+        else if (this.readStatus === "reading"){
+            this.readStatus = "finished"
+            this.readButton.style.color = "green"
+        }
+        else if (this.readStatus === "finished"){
+            this.readStatus = "unread"
+            this.readButton.style.color = "black"
+        }
+        this.readButton.value = this.readStatus;
+        saveCard(this)
+    }.bind(this))
+
+
+    this.deleteButton = document.createElement("input");
+    this.deleteButton.setAttribute("type", "button");
+    this.deleteButton.setAttribute("value", "delete");
+    this.deleteButton.style.color="red";
+    this.deleteButton.addEventListener("click", function(){
+        if (confirm(`are you sure you want to delete ${title}?`)){
+            myLibrary.pop()
+            localStorage.removeItem(book.id)
+            this.cardElement.remove()
+        } 
+    }.bind(this))
+
+    this.cardElement.appendChild(this.cont);
+    this.cardElement.appendChild(this.readButton);
+    this.cardElement.appendChild(this.deleteButton);
+
 }
 
-function addBookToLibrary(author, title, pages, read){
-    book = new Book(author, title, pages, read);
-    
+
+
+function addBookToLibrary(author, title, pages, readStatus){
+    book = new Book(author, title, pages, readStatus);
     //determine ID
-    id = Math.round((Math.random()*1000000));
-    while((id.toString().length === 5) || (myLibrary.includes(id))){
-        id = Math.round((Math.random()* 1000000));
-    }
-    book.id = id;
+
     
-    console.log(book.id)
     myLibrary.push(book);
     saveCard(book);
     return book;
 }
 
-addBookToLibrary("john hopkins", "hap", 124, false);
-addBookToLibrary("mary moe", "jobs", 1255, false);
+
+addBookToLibrary("mary moe", "jobs", 1255, "unread");
+addBookToLibrary("john hopkins", "hap", 124, "unread");
 
 window.onload = render();
+window.onload = recreateCards
 
+
+function recreateCards(){
+    if (localStorage.length > 0){
+        const idArray = [];
+        myLibrary.forEach(book => {
+            idArray.push(book.id)
+        });
+        console.log(idArray)
+        for(let i = localStorage.length; i > 0; i--){
+            const lsBook = JSON.parse(localStorage.getItem(localStorage.key(i-1)))
+            if (!idArray.includes(lsBook.id)){
+                addBookToLibrary(lsBook.author, lsBook.title, lsBook.pages, lsBook.readStatus);
+                render();
+            }
+        }
+    }
+}
 function render (){
-    const current = document.getElementById("card")
-    if (current.innerHTML!= "") current.innerHTML = "";
+    const current = document.getElementById("card") 
+    if (current.innerHTML!= "") current.innerHTML = ""; //empty on reload
+
     for(const key in myLibrary) {
-        const book = myLibrary[key]
-        const card = document.createElement("div");
-        const cont = document.createTextNode(`${book.title} by ${book.author}, ${book.pages} pgs. Status: `);
-        card.appendChild(cont);
-
-        const readButton = document.createElement("input");
-        readButton.setAttribute("type", "button");
-        readButton.setAttribute("value", "unread");
-        readButton.addEventListener("click", function(){
-            const readStatus = readButton.value;
-            if (readStatus === "unread") {
-                readButton.value = "reading";
-                readButton.style.color = "yellow";
-            }
-            if (readStatus === "reading") {
-                readButton.value = "finished";
-                readButton.style.color = "green";
-            }
-            if (readStatus === "finished"){
-                readButton.value = "unread";
-                readButton.style.color = "black";
-            }
-            saveCard(book);
-        })
-        card.appendChild(readButton);
-
-
-        const deleteButton = document.createElement("input");
-        deleteButton.setAttribute("type", "button");
-        deleteButton.setAttribute("value", "delete");
-        deleteButton.style.color="red";
-        deleteButton.addEventListener("click", function(){
-            if (confirm(`are you sure you want to delete ${book.title}?`)){
-                myLibrary.pop(key)
-                card.remove();
-            } 
-        })
-        card.appendChild(deleteButton);
-
-
-        current.appendChild(card);
+        //create content
+        const book = myLibrary[key];
+        current.appendChild(book.cardElement);
     }
 }
 
@@ -98,25 +119,27 @@ submitElement.addEventListener("click", function(){
         }
     }
 
-    addBookToLibrary(author, title, pages, false);
+    addBookToLibrary(author, title, pages, "unread");
     render();
 });
 
-function recreateCards(book){
-    const title = localStorage.getItem(book.id+"title");
-    const author = localStorage.getItem(book.id+"author");
-    const pages = localStorage.getItem(book.id+"pages");
-    const readStatus = localStorage.getItem(book.id+"readValue");
-    const id = localStorage.getItem(book.id);
-
-    const returnHash = new Hash
+function recreateCard(book){
+    console.log (JSON.parse(localStorage.getItem(book.id)))
+    return JSON.parse(localStorage.getItem(book.id))
 }
 
 function saveCard(book){
-    console.log("saving")
-    const title = localStorage.setItem(book.id+"title", book.title);
-    const author = localStorage.setItem(book.id+"author", book.author);
-    const pages = localStorage.setItem(book.id+"pages", book.pages);
-    const readStatus = localStorage.setItem(book.id+"readValue", book.read.value);
-    const id = localStorage.setItem(book.id, book.id);
+
+    const storeObj = {
+        title: book.title,
+        author: book.author,
+        pages: book.pages,
+        readStatus: book.readStatus,
+        id: book.id
+    }
+
+    localStorage.setItem(book.id, JSON.stringify(storeObj))
+
+
+    console.log("savin")
 };
